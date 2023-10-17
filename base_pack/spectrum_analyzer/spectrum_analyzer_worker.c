@@ -220,7 +220,7 @@ static int32_t spectrum_analyzer_worker_thread(void* context) {
                     instance->channel0_frequency + (ch * instance->spacing));
 
             subghz_devices_set_rx(instance->radio_device);
-            furi_delay_ms(3);
+            furi_delay_ms(1);
 
             //         dec      dBm
             //max_ss = 127 ->  -10.5
