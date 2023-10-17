@@ -167,6 +167,7 @@ ProtoViewApp* protoview_app_alloc() {
     app->txrx->last_g0_value = false;
 
     app->frequency = subghz_setting_get_default_frequency(app->setting);
+    app->frequency_current_digit = PROTOVIEW_FREQUENCY_PRECISE_ADJUSTMENT_OFF;
     app->modulation = 0; /* Defaults to ProtoViewModulations[0]. */
 
     // Init & set radio_device
@@ -294,12 +295,16 @@ int32_t protoview_app_entry(void* p) {
                 app->running = 0;
             } else if(
                 input.type == InputTypeShort && input.key == InputKeyRight &&
-                ui_get_current_subview(app) == 0) {
+                ui_get_current_subview(app) == 0 &&
+                !(app->current_view == ViewFrequencySettings &&
+                  app->frequency_current_digit != PROTOVIEW_FREQUENCY_PRECISE_ADJUSTMENT_OFF)) {
                 /* Go to the next view. */
                 app_switch_view(app, ViewGoNext);
             } else if(
                 input.type == InputTypeShort && input.key == InputKeyLeft &&
-                ui_get_current_subview(app) == 0) {
+                ui_get_current_subview(app) == 0 &&
+                !(app->current_view == ViewFrequencySettings &&
+                  app->frequency_current_digit != PROTOVIEW_FREQUENCY_PRECISE_ADJUSTMENT_OFF)) {
                 /* Go to the previous view. */
                 app_switch_view(app, ViewGoPrev);
             } else {

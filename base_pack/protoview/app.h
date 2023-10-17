@@ -25,6 +25,7 @@
 #define PROTOVIEW_RAW_VIEW_DEFAULT_SCALE 100 // 100us is 1 pixel by default
 #define BITMAP_SEEK_NOT_FOUND UINT32_MAX // Returned by function as sentinel
 #define PROTOVIEW_VIEW_PRIVDATA_LEN 64 // View specific private data len
+#define PROTOVIEW_FREQUENCY_PRECISE_ADJUSTMENT_OFF (-1) // Not in precise mode
 
 #define DEBUG_MSG 0
 
@@ -158,6 +159,10 @@ struct ProtoViewApp {
 
     /* Configuration view app state. */
     uint32_t frequency; /* Current frequency. */
+    int8_t frequency_current_digit; /* Current digit being edited,
+                                            for precise frequency adjustment.
+                                            Set to -1 if not in precise adjust mode.
+                                            Ranges 0 to 4, as in `432.10 MHz` */
     uint8_t modulation; /* Current modulation ID, array index in the
                                 ProtoViewModulations table. */
 };

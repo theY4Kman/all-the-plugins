@@ -2,6 +2,7 @@
  * See the LICENSE file for information about the license. */
 
 #include "app.h"
+#include <math.h>
 
 /* Renders a single view with frequency and modulation setting. However
  * this are logically two different views, and only one of the settings
@@ -29,6 +30,13 @@ void render_view_settings(Canvas* const canvas, ProtoViewApp* app) {
         snprintf(buf, sizeof(buf), "%.2f", (double)app->frequency / 1000000);
         canvas_set_font(canvas, FontBigNumbers);
         canvas_draw_str(canvas, 30, 40, buf);
+
+        if (app->frequency_current_digit != -1) {
+            uint16_t x = 30 + ((app->frequency_current_digit < 2 ? 5 : 4) - app->frequency_current_digit) * 12;
+            canvas_set_bitmap_mode(canvas, 1);
+            canvas_draw_line(canvas, x, 41, x + 10, 41);
+            canvas_draw_triangle(canvas, x + 5, 44, 5, 3, CanvasDirectionBottomToTop);
+        }
     } else if(app->current_view == ViewModulationSettings) {
         int current = app->modulation;
         canvas_set_font(canvas, FontPrimary);
@@ -55,9 +63,36 @@ void process_input_settings(ProtoViewApp* app, InputEvent input) {
         app->txrx->debug_timer_sampling = !app->txrx->debug_timer_sampling;
         radio_begin(app);
         radio_rx(app);
-    } else if(input.type == InputTypePress && (input.key != InputKeyDown || input.key != InputKeyUp)) {
+    } else if(input.type == InputTypePress) {
         /* Handle up and down to change frequency or modulation. */
         if(app->current_view == ViewFrequencySettings) {
+            if (input.key == InputKeyOk) {
+                if(app->frequency_current_digit == PROTOVIEW_FREQUENCY_PRECISE_ADJUSTMENT_OFF) {
+                    app->frequency_current_digit = 0;
+                } else {
+                    app->frequency_current_digit = PROTOVIEW_FREQUENCY_PRECISE_ADJUSTMENT_OFF;
+                }
+                return;
+            }
+
+            if(app->frequency_current_digit != PROTOVIEW_FREQUENCY_PRECISE_ADJUSTMENT_OFF) {
+                /* Use left and right keys to change digit (left increases the
+                 * digit, right decreases it). */
+                if(input.key == InputKeyLeft) {
+                    app->frequency_current_digit = (app->frequency_current_digit + 1) % 5;
+                } else if(input.key == InputKeyRight) {
+                    app->frequency_current_digit = app->frequency_current_digit == 0 ? 4 : app->frequency_current_digit - 1;
+                }
+
+                /* Up and down changes the current digit. */
+                if(input.key == InputKeyUp) {
+                    app->frequency = app->frequency + pow(10, 4 + app->frequency_current_digit);
+                } else if(input.key == InputKeyDown) {
+                    app->frequency = app->frequency - pow(10, 4 + app->frequency_current_digit);
+                }
+                return;
+            }
+
             size_t curidx = 0, i;
             size_t count = subghz_setting_get_frequency_count(app->setting);
 
