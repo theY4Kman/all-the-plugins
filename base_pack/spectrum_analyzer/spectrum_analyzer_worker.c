@@ -190,7 +190,7 @@ static int32_t spectrum_analyzer_worker_thread(void* context) {
     const uint8_t* modulations[] = {default_modulation, narrow_modulation};
 
     while(instance->should_work) {
-        furi_delay_ms(50);
+        furi_delay_ms(15);
 
         // FURI_LOG_T("SpectrumWorker", "spectrum_analyzer_worker_thread: Worker Loop");
         subghz_devices_idle(instance->radio_device);
