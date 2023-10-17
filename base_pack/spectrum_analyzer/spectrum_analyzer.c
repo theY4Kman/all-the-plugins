@@ -503,25 +503,51 @@ int32_t spectrum_analyzer_app(void* p) {
                 FURI_LOG_D("Spectrum", "Vscroll: %u", model->vscroll);
                 break;
             case InputKeyRight:
-                model->center_freq += hstep;
-                FURI_LOG_D("Spectrum", "center_freq: %lu", model->center_freq);
+            case InputKeyLeft: {
+                uint32_t prev_center_freq;
+                int16_t delta_channels;
+                bool scroll_right;
+
+                prev_center_freq = model->center_freq;
+                model->center_freq += input.key == InputKeyRight ? hstep : -hstep;
                 spectrum_analyzer_calculate_frequencies(model);
+
+                scroll_right = model->center_freq < prev_center_freq;
+                delta_channels = (
+                    (scroll_right
+                        ? prev_center_freq - model->center_freq
+                        : model->center_freq - prev_center_freq)
+                    * 1000
+                    / model->spacing);
+
+                // If we've moved to another band, clear the entire channel_ss array
+                if (delta_channels >= NUM_CHANNELS) {
+                    memset(&model->channel_ss[2], 0, sizeof(uint8_t) * NUM_CHANNELS);
+                } else {
+                    if (scroll_right) {
+                        // When scrolling channels to the right (due to a decrease in center_freq),
+                        // shift channels, starting from the end, so we don't eat our own tail.
+                        for (uint8_t i = NUM_CHANNELS - 1; i >= delta_channels; i--) {
+                            model->channel_ss[i + 2] = model->channel_ss[i + 2 - delta_channels];
+                        }
+                        // Shift 0s into the first channels
+                        memset(&model->channel_ss[2], 0, sizeof(uint8_t) * delta_channels);
+                    } else {
+                        for (uint8_t i = 0; i < NUM_CHANNELS - delta_channels; i++) {
+                            model->channel_ss[i + 2] = model->channel_ss[i + 2 + delta_channels];
+                        }
+                        memset(&model->channel_ss[NUM_CHANNELS - delta_channels + 2], 0, sizeof(uint8_t) * delta_channels);
+                    }
+                }
+
                 spectrum_analyzer_worker_set_frequencies(
                     spectrum_analyzer->worker,
                     model->channel0_frequency,
                     model->spacing,
                     model->width);
-                break;
-            case InputKeyLeft:
-                model->center_freq -= hstep;
-                spectrum_analyzer_calculate_frequencies(model);
-                spectrum_analyzer_worker_set_frequencies(
-                    spectrum_analyzer->worker,
-                    model->channel0_frequency,
-                    model->spacing,
-                    model->width);
                 FURI_LOG_D("Spectrum", "center_freq: %lu", model->center_freq);
                 break;
+            }
             case InputKeyOk: {
                 switch(model->width) {
                 case WIDE:
